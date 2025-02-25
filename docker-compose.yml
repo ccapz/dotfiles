@@ -1,0 +1,62 @@
+services:
+  traefik:
+    image: traefik:v3.3.3
+    container_name: traefik
+    command:
+      # 全局配置
+      - --global.checknewversion=false
+      - --global.sendanonymoususage=false
+      # 日志配置
+      - --log.level=ERROR
+      # API配置
+      - --api.dashboard=false
+      - --api.insecure=false
+      # 入口点配置
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      # 自动HTTP->HTTPS跳转
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      # Docker提供者
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.endpoint=unix:///var/run/docker.sock
+      # 文件提供者（动态配置）
+      - --providers.file.filename=/dynamic.yml
+      # 证书解析器：Cloudflare
+      - --certificatesresolvers.cloudflare.acme.storage=/acme.json
+      - --certificatesresolvers.cloudflare.acme.caserver=https://acme-v02.api.letsencrypt.org/directory
+      - --certificatesresolvers.cloudflare.acme.keytype=EC256
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.delaybeforecheck=60
+    ports:
+      - "80:80" # HTTP入口
+      - "443:443" # HTTPS入口
+    env_file:
+      - ./config.env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data/acme.json:/acme.json
+      - ./data/dynamic.yml:/dynamic.yml:ro
+    networks:
+      - traefik_network
+    restart: always
+
+  whoami:
+    image: traefik/whoami
+    container_name: whoami
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`whoami.example.com`)"
+      - "traefik.http.routers.whoami.entrypoints=websecure"
+      - "traefik.http.routers.whoami.tls=true"
+      - "traefik.http.routers.whoami.tls.certresolver=cloudflare"
+      - "traefik.http.services.whoami.loadbalancer.server.port=80"
+    networks:
+      - traefik_network
+    restart: always
+
+networks:
+  traefik_network:
+    external: true
