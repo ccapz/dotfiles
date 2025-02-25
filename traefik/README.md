@@ -9,3 +9,5 @@ docker network create traefik_network
 ```bash
 chmod 600 acme.json
 ```
+
+`dynamic.yml`可以为空
