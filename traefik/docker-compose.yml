@@ -34,7 +34,7 @@ services:
       - "80:80" # HTTP入口
       - "443:443" # HTTPS入口
     env_file:
-      - ./config.env
+      - ./data/config.env
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./data/acme.json:/acme.json
@@ -43,6 +43,7 @@ services:
       - traefik_network
     restart: always
 
+  # ----------------示例服务（可选）--------
   whoami:
     image: traefik/whoami
     container_name: whoami
@@ -56,7 +57,7 @@ services:
     networks:
       - traefik_network
     restart: always
-
+  # ----------------------------------------
 networks:
   traefik_network:
     external: true
